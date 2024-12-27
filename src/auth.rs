@@ -26,16 +26,10 @@ pub fn verify_password(password: &str, hash: &str) -> bool {
 }
 
 pub fn create_token(user_id: i64) -> Result<String, jsonwebtoken::errors::Error> {
-    let claims = Claims {
-        sub: user_id,
-    };
+    let claims = Claims { sub: user_id };
     let header = Header::default();
 
-    encode(
-        &header,
-        &claims,
-        &EncodingKey::from_secret(&JWT_SECRET),
-    )
+    encode(&header, &claims, &EncodingKey::from_secret(&JWT_SECRET))
 }
 
 pub struct AuthUser {
@@ -55,12 +49,17 @@ where
             .get("Authorization")
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError(StatusCode::UNAUTHORIZED, "Missing authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError(
+                    StatusCode::UNAUTHORIZED,
+                    "Missing authorization header".to_string(),
+                )
+            })?;
 
         // Create validation that doesn't check for expiration
         let mut validation = Validation::new(jsonwebtoken::Algorithm::HS256);
         validation.required_spec_claims = HashSet::new();
-        validation.validate_exp = false;  // Disable expiration time validation
+        validation.validate_exp = false; // Disable expiration time validation
         validation.validate_aud = false;
 
         // Decode and validate the token

@@ -23,7 +23,10 @@ use crate::db::{
     get_practice_action, get_practice_records, get_user_by_username, init_db,
     list_actions_with_stats,
 };
-use crate::models::{LoginRequest, LoginResponse, PracticeAction, PracticeRecord, RegisterRequest, CreateActionRequest};
+use crate::models::{
+    CreateActionRequest, LoginRequest, LoginResponse, PracticeAction, PracticeRecord,
+    RegisterRequest,
+};
 
 pub struct AppState {
     pub pool: sqlx::PgPool,
@@ -44,10 +47,7 @@ impl From<sqlx::Error> for AppError {
             sqlx::Error::RowNotFound => AppError(StatusCode::NOT_FOUND, "Not found".to_string()),
             sqlx::Error::Database(e) => {
                 if e.is_unique_violation() {
-                    AppError(
-                        StatusCode::CONFLICT,
-                        "Resource already exists".to_string(),
-                    )
+                    AppError(StatusCode::CONFLICT, "Resource already exists".to_string())
                 } else {
                     AppError(
                         StatusCode::INTERNAL_SERVER_ERROR,
@@ -141,13 +141,12 @@ pub async fn get_action(
 pub async fn finish_action(
     auth_user: AuthUser,
     State(state): State<Arc<AppState>>,
-    Path(id): Path<i64>, 
+    Path(id): Path<i64>,
 ) -> Result<Json<PracticeRecord>, AppError> {
     // Check if action exists and belongs to user
     let action = get_practice_action(&state.pool, auth_user.user_id, id)
         .await?
         .ok_or_else(|| AppError(StatusCode::NOT_FOUND, "Action not found".to_string()))?;
-
 
     // Check if already completed today
     if !can_finish_today(&state.pool, auth_user.user_id, action.id).await? {
@@ -189,7 +188,9 @@ async fn main() {
     );
 
     println!("Connecting to database...");
-    let pool = db::init_db(&db_url).await.expect("Failed to initialize database");
+    let pool = db::init_db(&db_url)
+        .await
+        .expect("Failed to initialize database");
 
     let cors = CorsLayer::new()
         .allow_methods(Any)
@@ -213,12 +214,12 @@ async fn main() {
         .ok()
         .and_then(|p| p.parse().ok())
         .unwrap_or(3000);
-    
+
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     println!("Server running on {}", addr);
- 
+
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app.into_make_service())
-    .await
-    .unwrap();
+        .await
+        .unwrap();
 }

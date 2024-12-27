@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sqlx::FromRow;
 use time::OffsetDateTime;
 
@@ -82,13 +82,13 @@ pub struct LoginResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: i64,  // user id
+    pub sub: i64, // user id
 }
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct PracticeAction {
     pub id: i64,
-    pub user_id: i64,  // Add user_id field
+    pub user_id: i64, // Add user_id field
     pub name: String,
     #[serde(with = "timestamp_serializer")]
     pub create_time: OffsetDateTime,
@@ -113,7 +113,7 @@ pub struct PracticeRecord {
 #[derive(Debug, Serialize, FromRow, Deserialize)]
 pub struct ActionWithStats {
     pub id: i64,
-    pub user_id: i64,  // Add user_id field
+    pub user_id: i64, // Add user_id field
     pub name: String,
     #[serde(with = "timestamp_serializer")]
     pub create_time: OffsetDateTime,

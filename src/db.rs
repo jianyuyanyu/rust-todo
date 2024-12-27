@@ -1,12 +1,12 @@
 use sqlx::PgPool;
-use time::OffsetDateTime;
 use time::Date;
+use time::OffsetDateTime;
 
-use crate::models::{PracticeAction, PracticeRecord, ActionWithStats, User};
+use crate::models::{ActionWithStats, PracticeAction, PracticeRecord, User};
 
 pub async fn init_db(db_url: &str) -> Result<PgPool, sqlx::Error> {
     let pool = PgPool::connect(db_url).await?;
-    
+
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS users (
@@ -19,7 +19,7 @@ pub async fn init_db(db_url: &str) -> Result<PgPool, sqlx::Error> {
     )
     .execute(&pool)
     .await?;
-    
+
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS practice_action (
@@ -33,7 +33,6 @@ pub async fn init_db(db_url: &str) -> Result<PgPool, sqlx::Error> {
     )
     .execute(&pool)
     .await?;
-    
 
     sqlx::query(
         r#"
@@ -48,7 +47,6 @@ pub async fn init_db(db_url: &str) -> Result<PgPool, sqlx::Error> {
     .execute(&pool)
     .await?;
 
-
     Ok(pool)
 }
 
@@ -58,7 +56,7 @@ pub async fn create_user(
     password_hash: &str,
 ) -> Result<User, sqlx::Error> {
     let now = OffsetDateTime::now_utc();
-    
+
     let user = sqlx::query_as::<_, User>(
         r#"
         INSERT INTO users (username, password_hash, create_time)
@@ -100,7 +98,7 @@ pub async fn create_practice_action(
 ) -> Result<PracticeAction, sqlx::Error> {
     let now = OffsetDateTime::now_utc();
     println!("now: {}, uid: {} name {}", now, user_id, name);
-    
+
     let action = sqlx::query_as::<_, PracticeAction>(
         r#"
         INSERT INTO practice_action (user_id, name, create_time)
@@ -204,7 +202,7 @@ pub async fn can_finish_today(
     action_id: i64,
 ) -> Result<bool, sqlx::Error> {
     let today = OffsetDateTime::now_utc().date();
-    
+
     let count: Option<i64> = sqlx::query_scalar(
         r#"
         SELECT COUNT(*)
@@ -231,7 +229,7 @@ pub async fn create_practice_record(
     note: Option<String>,
 ) -> Result<PracticeRecord, sqlx::Error> {
     let now = OffsetDateTime::now_utc();
-    
+
     // Verify user owns the action
     let action_exists: Option<bool> = sqlx::query_scalar(
         r#"
@@ -249,7 +247,7 @@ pub async fn create_practice_record(
     if !action_exists.unwrap_or(false) {
         return Err(sqlx::Error::RowNotFound);
     }
-    
+
     // Update last_finish_time
     sqlx::query(
         r#"
