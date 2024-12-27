@@ -1,5 +1,4 @@
 use sqlx::PgPool;
-use time::Date;
 use time::OffsetDateTime;
 
 use crate::models::{ActionWithStats, PracticeAction, PracticeRecord, User};

@@ -10,7 +10,6 @@ use axum::{
     Json, Router,
 };
 use dotenv::dotenv;
-use serde::Deserialize;
 use serde_json::json;
 use std::env;
 use std::net::SocketAddr;
@@ -20,7 +19,7 @@ use tower_http::cors::{Any, CorsLayer};
 use crate::auth::AuthUser;
 use crate::db::{
     can_finish_today, create_practice_action, create_practice_record, create_user,
-    get_practice_action, get_practice_records, get_user_by_username, init_db,
+    get_practice_action, get_practice_records, get_user_by_username,
     list_actions_with_stats,
 };
 use crate::models::{

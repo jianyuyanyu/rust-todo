@@ -1,9 +1,8 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use time::OffsetDateTime;
 
 mod timestamp_serializer {
-    use super::*;
     use serde::{Deserialize, Deserializer, Serializer};
     use time::OffsetDateTime;
 
@@ -24,7 +23,6 @@ mod timestamp_serializer {
 }
 
 mod optional_timestamp_serializer {
-    use super::*;
     use serde::{Deserialize, Deserializer, Serializer};
     use time::OffsetDateTime;
 
