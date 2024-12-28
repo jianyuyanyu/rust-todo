@@ -193,7 +193,7 @@ async fn main() {
         .init();
 
     info!("Starting application...");
-    
+
     // Load .env file
     dotenv().ok();
 
