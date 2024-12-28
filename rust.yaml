@@ -1,0 +1,13 @@
+version: "3"
+services:
+  server:
+    image: ghcr.io/sangmingming/rust-todo:main
+    environment:
+      - POSTGRES_USER=sam-nas
+      - POSTGRES_PASSWORD=ming199o
+      - POSTGRES_DB=mpg_qnap
+      - POSTGRES_HOST=localhost
+      - POSTGRES_PORT=5432
+    restart: unless-stopped
+    ports:
+      - "3021:3001"

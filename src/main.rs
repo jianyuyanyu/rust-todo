@@ -15,6 +15,9 @@ use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::trace::{self, TraceLayer};
+use tracing::{error, info, Level};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::auth::AuthUser;
 use crate::db::{
@@ -42,21 +45,28 @@ impl IntoResponse for AppError {
 impl From<sqlx::Error> for AppError {
     fn from(err: sqlx::Error) -> Self {
         match err {
-            sqlx::Error::RowNotFound => AppError(StatusCode::NOT_FOUND, "Not found".to_string()),
+            sqlx::Error::RowNotFound => {
+                error!("Database error: Row not found");
+                AppError(StatusCode::NOT_FOUND, "Not found".to_string())
+            }
             sqlx::Error::Database(e) => {
+                error!("Database error: {}", e);
                 if e.is_unique_violation() {
                     AppError(StatusCode::CONFLICT, "Resource already exists".to_string())
                 } else {
                     AppError(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        "Database error".to_string(),
+                        "Internal server error".to_string(),
                     )
                 }
             }
-            _ => AppError(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error".to_string(),
-            ),
+            _ => {
+                error!("Unexpected database error: {}", err);
+                AppError(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Internal server error".to_string(),
+                )
+            }
         }
     }
 }
@@ -168,8 +178,22 @@ pub async fn get_action_records(
     Ok(Json(records))
 }
 
+async fn handle_404() -> impl IntoResponse {
+    (StatusCode::NOT_FOUND, Json(json!({ "error": "Not Found" })))
+}
+
 #[tokio::main]
 async fn main() {
+    // Initialize tracing
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    info!("Starting application...");
+    
     // Load .env file
     dotenv().ok();
 
@@ -184,16 +208,23 @@ async fn main() {
         "postgres://{}:{}@{}:{}/{}",
         db_user, db_password, db_host, db_port, db_name
     );
+    info!("Database URL: {}", db_url);
 
     println!("Connecting to database...");
     let pool = db::init_db(&db_url)
         .await
         .expect("Failed to initialize database");
+    info!("Database connection established");
 
     let cors = CorsLayer::new()
         .allow_methods(Any)
         .allow_headers(Any)
         .allow_origin(Any);
+
+    // Add tracing middleware
+    let trace_layer = TraceLayer::new_for_http()
+        .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+        .on_response(trace::DefaultOnResponse::new().level(Level::INFO));
 
     let app_state = Arc::new(AppState { pool });
 
@@ -205,6 +236,8 @@ async fn main() {
         .route("/api/actions/:id", get(get_action))
         .route("/api/actions/:id/records", get(get_action_records))
         .route("/api/actions/:id/finish", post(finish_action))
+        .fallback(handle_404)
+        .layer(trace_layer)
         .layer(cors)
         .with_state(app_state);
 
