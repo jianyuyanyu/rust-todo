@@ -200,7 +200,8 @@ pub async fn can_finish_today(
     user_id: i64,
     action_id: i64,
 ) -> Result<bool, sqlx::Error> {
-    let today = OffsetDateTime::now_utc().date();
+    let offset = time::UtcOffset::from_hms(8, 0, 0).unwrap();
+    let today = OffsetDateTime::now_utc().to_offset(offset).date();
 
     let count: Option<i64> = sqlx::query_scalar(
         r#"
@@ -209,7 +210,7 @@ pub async fn can_finish_today(
         JOIN practice_action a ON r.action_id = a.id
         WHERE r.action_id = $1 
         AND a.user_id = $2
-        AND DATE(r.finish_time) = DATE($3)
+        AND DATE(r.finish_time AT TIME ZONE 'UTC+8') = $3
         "#,
     )
     .bind(action_id)
