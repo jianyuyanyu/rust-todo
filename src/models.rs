@@ -51,9 +51,9 @@ mod optional_timestamp_serializer {
 }
 
 #[derive(Deserialize)]
-struct QueryParams {
-    ids: Option<String>,
-    key: Option<String>,
+pub struct QueryParams {
+    pub ids: Option<String>,
+    pub key: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]

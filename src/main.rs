@@ -3,9 +3,9 @@ mod db;
 mod models;
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Json, Response},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -185,15 +185,13 @@ async fn handle_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, Json(json!({ "error": "Not Found" })))
 }
 
-async fn get_coins(
-    Query(params): Query<QueryParams>,
-) -> Result<Json<Value>, axum::response::IntoResponse> {
+async fn get_coins(Query(params): Query<QueryParams>) -> Result<Json<Value>, AppError> {
     let mut param_map = HashMap::new();
     if let Some(param1) = params.ids {
         param_map.insert("ids".to_string(), param1);
     }
-    param_map.insert("vs_currency", "usd");
-    let mut key = "";
+    param_map.insert("vs_currency".to_string(), "usd".to_string());
+    let mut key = String::new();
     if let Some(param2) = params.key {
         key = param2;
     }
@@ -203,14 +201,15 @@ async fn get_coins(
         "accept",
         header::HeaderValue::from_str("application/json").unwrap(),
     );
-    headers.insert("", header::HeaderValue::from_str(key).unwrap());
+    headers.insert("", header::HeaderValue::from_str(key.as_str()).unwrap());
     let response = client
         .get("https://api.coingecko.com/api/v3/coins/markets")
-        .query(&params)
+        .query(&param_map)
         .headers(headers)
         .send()
-        .await?;
-    let body = response.json::<Value>().await?;
+        .await
+        .unwrap();
+    let body = response.json::<Value>().await.unwrap();
     Ok(Json(body))
 }
 
