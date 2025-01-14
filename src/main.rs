@@ -201,7 +201,7 @@ async fn get_coins(Query(params): Query<QueryParams>) -> Result<Json<Value>, App
         "accept",
         header::HeaderValue::from_str("application/json").unwrap(),
     );
-    headers.insert("", header::HeaderValue::from_str(key.as_str()).unwrap());
+    headers.insert("x-cg-demo-api-key", header::HeaderValue::from_str(key.as_str()).unwrap());
     let response = client
         .get("https://api.coingecko.com/api/v3/coins/markets")
         .query(&param_map)
