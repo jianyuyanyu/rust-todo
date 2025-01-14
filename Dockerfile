@@ -12,7 +12,7 @@ FROM debian:bullseye-slim
 
 # Install OpenSSL and ca-certificates
 RUN apt-get update && \
-    apt-get install -y openssl ca-certificates && \
+    apt-get install -y pkg-config openssl ca-certificates libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/local/bin
