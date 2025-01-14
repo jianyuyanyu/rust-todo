@@ -3,6 +3,7 @@ FROM rust:1.83-slim-bullseye as builder
 
 WORKDIR /usr/src/app
 COPY . .
+RUN apt-get install -y pkg-config libssl-dev
 RUN cargo --version
 # Build the application
 RUN cargo build --release
