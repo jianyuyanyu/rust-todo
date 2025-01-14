@@ -50,6 +50,12 @@ mod optional_timestamp_serializer {
     }
 }
 
+#[derive(Deserialize)]
+struct QueryParams {
+    ids: Option<String>,
+    key: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: i64,

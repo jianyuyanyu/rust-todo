@@ -5,10 +5,11 @@ mod models;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Response, Json},
     routing::{get, post},
     Json, Router,
 };
+use reqwest::{Client, header};
 use dotenv::dotenv;
 use serde_json::json;
 use std::env;
@@ -18,6 +19,8 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use serde_json::Value;
+use std::collections::HashMap;
 
 use crate::auth::AuthUser;
 use crate::db::{
@@ -26,7 +29,7 @@ use crate::db::{
 };
 use crate::models::{
     CreateActionRequest, LoginRequest, LoginResponse, PracticeAction, PracticeRecord,
-    RegisterRequest,
+    RegisterRequest, QueryParams,
 };
 
 pub struct AppState {
@@ -182,6 +185,31 @@ async fn handle_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, Json(json!({ "error": "Not Found" })))
 }
 
+async fn get_coins(Query(params): Query<QueryParams>) ->  -> Result<String, axum::response::IntoResponse> {
+    let mut param_map = HashMap::new();
+    if let Some(param1) = params.ids {
+        param_map.insert("ids".to_string(), param1);
+    }
+    param_map.insert("vs_currency", "usd");
+    let mut key = "";
+    if let Some(param2) = params.key {
+        key = param2;
+    }
+    let client = Client::new();
+    let mut headers = header::HeaderMap::new();
+    headers.insert("accept", header::HeaderValue::from_str("application/json").unwrap());
+    headers.insert("", header::HeaderValue::from_str(key).unwrap());
+    let response = client.get("https://api.coingecko.com/api/v3/coins/markets")
+            .query(&params)
+            .headers(headers)
+            .send()
+            .await?;
+    let body = response.json::<Value>().await?;
+    Ok(Json(body))
+
+    
+}
+
 #[tokio::main]
 async fn main() {
     // Initialize tracing
@@ -236,6 +264,7 @@ async fn main() {
         .route("/api/actions/:id", get(get_action))
         .route("/api/actions/:id/records", get(get_action_records))
         .route("/api/actions/:id/finish", post(finish_action))
+        .route("/api/coins", get(get_coins))
         .fallback(handle_404)
         .layer(trace_layer)
         .layer(cors)
