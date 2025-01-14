@@ -185,7 +185,7 @@ async fn handle_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, Json(json!({ "error": "Not Found" })))
 }
 
-async fn get_coins(Query(params): Query<QueryParams>) ->  -> Result<String, axum::response::IntoResponse> {
+async fn get_coins(Query(params): Query<QueryParams>) -> Result<Json<Value>, axum::response::IntoResponse> {
     let mut param_map = HashMap::new();
     if let Some(param1) = params.ids {
         param_map.insert("ids".to_string(), param1);
