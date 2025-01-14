@@ -5,13 +5,15 @@ mod models;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Response, Json},
+    response::{IntoResponse, Json, Response},
     routing::{get, post},
     Json, Router,
 };
-use reqwest::{Client, header};
 use dotenv::dotenv;
+use reqwest::{header, Client};
 use serde_json::json;
+use serde_json::Value;
+use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -19,8 +21,6 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use serde_json::Value;
-use std::collections::HashMap;
 
 use crate::auth::AuthUser;
 use crate::db::{
@@ -28,8 +28,8 @@ use crate::db::{
     get_practice_action, get_practice_records, get_user_by_username, list_actions_with_stats,
 };
 use crate::models::{
-    CreateActionRequest, LoginRequest, LoginResponse, PracticeAction, PracticeRecord,
-    RegisterRequest, QueryParams,
+    CreateActionRequest, LoginRequest, LoginResponse, PracticeAction, PracticeRecord, QueryParams,
+    RegisterRequest,
 };
 
 pub struct AppState {
@@ -185,7 +185,9 @@ async fn handle_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, Json(json!({ "error": "Not Found" })))
 }
 
-async fn get_coins(Query(params): Query<QueryParams>) -> Result<Json<Value>, axum::response::IntoResponse> {
+async fn get_coins(
+    Query(params): Query<QueryParams>,
+) -> Result<Json<Value>, axum::response::IntoResponse> {
     let mut param_map = HashMap::new();
     if let Some(param1) = params.ids {
         param_map.insert("ids".to_string(), param1);
@@ -197,17 +199,19 @@ async fn get_coins(Query(params): Query<QueryParams>) -> Result<Json<Value>, axu
     }
     let client = Client::new();
     let mut headers = header::HeaderMap::new();
-    headers.insert("accept", header::HeaderValue::from_str("application/json").unwrap());
+    headers.insert(
+        "accept",
+        header::HeaderValue::from_str("application/json").unwrap(),
+    );
     headers.insert("", header::HeaderValue::from_str(key).unwrap());
-    let response = client.get("https://api.coingecko.com/api/v3/coins/markets")
-            .query(&params)
-            .headers(headers)
-            .send()
-            .await?;
+    let response = client
+        .get("https://api.coingecko.com/api/v3/coins/markets")
+        .query(&params)
+        .headers(headers)
+        .send()
+        .await?;
     let body = response.json::<Value>().await?;
     Ok(Json(body))
-
-    
 }
 
 #[tokio::main]
