@@ -21,6 +21,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::auth::AuthUser;
 use crate::db::{
@@ -185,6 +186,37 @@ async fn handle_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, Json(json!({ "error": "Not Found" })))
 }
 
+async fn get_blog_state(Query(params): Query<QueryParams>) -> Result<Json<Value>, AppError> {
+    let mut param_map = HashMap::new();
+    let now = SystemTime::now();
+    let millis = now.duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_millis();
+    let millis_24h_ago = millis - 24*60*60*1000;
+    param_map.insert("endAt".to_string(), millis);
+    param_map.insert("startAt".to_string(), millis_24h_ago);
+    let mut key = String::new();
+    if let Some(param2) = params.key {
+        key = param2;
+    }
+    let client = Client::new();
+    let mut headers = header::HeaderMap::new();
+    headers.insert(
+        "accept",
+        header::HeaderValue::from_str("application/json").unwrap(),
+    );
+    headers.insert("x-umami-api-key", header::HeaderValue::from_str(key.as_str()).unwrap());
+    let response = client
+        .get("https://api.umami.is/v1/websites/1e6200ff-174a-4240-8a9e-8c537d337d69/stats")
+        .query(&param_map)
+        .headers(headers)
+        .send()
+        .await
+        .unwrap();
+    let body = response.json::<Value>().await.unwrap();
+    Ok(Json(body))
+}
+
 async fn get_coins(Query(params): Query<QueryParams>) -> Result<Json<Value>, AppError> {
     let mut param_map = HashMap::new();
     if let Some(param1) = params.ids {
@@ -268,6 +300,7 @@ async fn main() {
         .route("/api/actions/:id/records", get(get_action_records))
         .route("/api/actions/:id/finish", post(finish_action))
         .route("/api/coins", get(get_coins))
+        .route("/api/blog/state", get(get_blog_state))
         .fallback(handle_404)
         .layer(trace_layer)
         .layer(cors)
